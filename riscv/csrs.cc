@@ -599,10 +599,10 @@ sstatus_csr_t::sstatus_csr_t(processor_t* const proc, sstatus_proxy_csr_t_p orig
 
 void sstatus_csr_t::dirty(const reg_t dirties) {
   // As an optimization, return early if already dirty.
-  if ((orig_sstatus->read() & dirties) == dirties) {
-    if (likely(!state->v || (virt_sstatus->read() & dirties) == dirties))
-      return;
-  }
+  /* if ((orig_sstatus->read() & dirties) == dirties) { */
+  /*   if (likely(!state->v || (virt_sstatus->read() & dirties) == dirties)) */
+  /*     return; */
+  /* } */
 
   // Catch problems like #823 where P-extension instructions were not
   // checking for mstatus.VS!=Off:

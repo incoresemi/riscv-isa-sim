@@ -186,7 +186,7 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
     } \
   } while (0);
 
-#define set_fp_exceptions ({ if (softfloat_exceptionFlags) { \
+#define set_fp_exceptions ({ /*if (softfloat_exceptionFlags)*/ { \
                                STATE.fflags->write(STATE.fflags->read() | softfloat_exceptionFlags); \
                              } \
                              softfloat_exceptionFlags = 0; })
