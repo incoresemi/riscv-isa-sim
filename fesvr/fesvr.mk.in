@@ -15,6 +15,10 @@ fesvr_install_hdrs = \
   rfb.h \
   tsi.h \
 
+fesvr_CFLAGS = -fPIC
+
+fesvr_install_shared_lib = yes
+
 fesvr_install_config_hdr = yes
 
 fesvr_install_lib = yes
