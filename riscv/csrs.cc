@@ -629,9 +629,9 @@ bool sstatus_csr_t::enabled(const reg_t which) {
 
 // implement class misa_csr_t
 misa_csr_t::misa_csr_t(processor_t* const proc, const reg_t addr, const reg_t max_isa):
-  basic_csr_t(proc, addr, max_isa),
+  basic_csr_t(proc, addr, max_isa & ~(1L << ('P' - 'A'))), // extension P is unratified -- do not set the P bit
   max_isa(max_isa),
-  write_mask(max_isa & (0  // allow MABFDQCHVPU bits in MISA to be modified
+  write_mask(max_isa & (0  // allow MABFDQCHVU bits in MISA to be modified
                         | (1L << ('M' - 'A'))
                         | (1L << ('A' - 'A'))
                         | (1L << ('B' - 'A'))
@@ -640,7 +640,6 @@ misa_csr_t::misa_csr_t(processor_t* const proc, const reg_t addr, const reg_t ma
                         | (1L << ('Q' - 'A'))
                         | (1L << ('C' - 'A'))
                         | (1L << ('H' - 'A'))
-                        | (1L << ('P' - 'A'))
                         | (1L << ('U' - 'A'))
                         | (1L << ('V' - 'A'))
                         )
