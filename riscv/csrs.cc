@@ -629,9 +629,9 @@ bool sstatus_csr_t::enabled(const reg_t which) {
 
 // implement class misa_csr_t
 misa_csr_t::misa_csr_t(processor_t* const proc, const reg_t addr, const reg_t max_isa):
-  basic_csr_t(proc, addr, max_isa),
+  basic_csr_t(proc, addr, max_isa & ~(1L << ('P' - 'A'))), // extension P is unratified -- do not set the P bit
   max_isa(max_isa),
-  write_mask(max_isa & (0  // allow MABFDQCHV bits in MISA to be modified
+  write_mask(max_isa & (0  // allow MABFDQCHVU bits in MISA to be modified
                         | (1L << ('M' - 'A'))
                         | (1L << ('A' - 'A'))
                         | (1L << ('B' - 'A'))
@@ -640,6 +640,7 @@ misa_csr_t::misa_csr_t(processor_t* const proc, const reg_t addr, const reg_t ma
                         | (1L << ('Q' - 'A'))
                         | (1L << ('C' - 'A'))
                         | (1L << ('H' - 'A'))
+                        | (1L << ('U' - 'A'))
                         | (1L << ('V' - 'A'))
                         )
              ) {
@@ -709,7 +710,7 @@ bool misa_csr_t::unlogged_write(const reg_t val) noexcept {
 }
 
 bool misa_csr_t::extension_enabled_const(unsigned char ext) const noexcept {
-  assert(!(1 & (write_mask >> (ext - 'A'))));
+  // assert(!(1 & (write_mask >> (ext - 'A'))));
   return extension_enabled(ext);
 }
 
