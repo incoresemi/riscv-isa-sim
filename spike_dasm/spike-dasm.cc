@@ -19,14 +19,43 @@ int main(int UNUSED argc, char** argv)
 {
   string s;
   const char* isa = DEFAULT_ISA;
+  bool numeric_regs = false;
+  bool help = false;
+
+  const char* help_text = 
+    "Usage: spike-dasm [options] < input_file\n"
+    "\n"
+    "Options:\n"
+    "  --help            Show this help message\n"
+    "  --isa=<str>      Set the ISA string (default: " DEFAULT_ISA ")\n"
+    "  --numeric-reg    Use numeric register names (x0-x31) instead of ABI names\n"
+#ifdef HAVE_DLOPEN
+    "  --extension=<so> Load extension library\n"
+#endif
+    "\n"
+    "Description:\n"
+    "  spike-dasm disassembles RISC-V instructions. It reads from standard input\n"
+    "  and looks for patterns like DASM(instruction_hex). Each such pattern is\n"
+    "  replaced with the disassembly of the instruction.\n"
+    "\n"
+    "Example:\n"
+    "  echo 'DASM(00a58533)' | spike-dasm\n"
+    "  DASM(00a58533) -> add a0, a1, a0\n";
 
   std::function<extension_t*()> extension;
   option_parser_t parser;
+  parser.option(0, "help", 0, [&](const char* s){help = true;});
 #ifdef HAVE_DLOPEN
   parser.option(0, "extension", 1, [&](const char* s){extension = find_extension(s);});
 #endif
   parser.option(0, "isa", 1, [&](const char* s){isa = s;});
+  parser.option(0, "numeric-reg", 0, [&](const char* s){numeric_regs = true;});
   parser.parse(argv);
+
+  if (help) {
+    std::cerr << help_text;
+    return 0;
+  }
 
   isa_parser_t isa_parser(isa, DEFAULT_PRIV);
   disassembler_t* disassembler = new disassembler_t(&isa_parser);
@@ -35,6 +64,7 @@ int main(int UNUSED argc, char** argv)
       disassembler->add_insn(disasm_insn);
     }
   }
+  disassembler->numeric_reg_names = numeric_regs;
 
   while (getline(cin, s))
   {

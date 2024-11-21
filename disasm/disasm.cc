@@ -20,45 +20,48 @@
 // then it will not be printed.
 static const arg_t* opt = nullptr;
 
+// Global reference to current disassembler
+static const disassembler_t* current_disassembler = nullptr;
+
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.i_imm()) + '(' + xpr_name[insn.rs1()] + ')';
+    return std::to_string((int)insn.i_imm()) + '(' + get_xpr_name(insn.rs1(), current_disassembler->numeric_reg_names) + ')';
   }
 } load_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_lbimm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
+    return std::to_string((int)insn.rvc_lbimm()) + '(' + get_xpr_name(insn.rvc_rs1s(), current_disassembler->numeric_reg_names) + ')';
   }
 } rvb_b_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_lhimm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
+    return std::to_string((int)insn.rvc_lhimm()) + '(' + get_xpr_name(insn.rvc_rs1s(), current_disassembler->numeric_reg_names) + ')';
   }
 } rvb_h_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.s_imm()) + '(' + xpr_name[insn.rs1()] + ')';
+    return std::to_string((int)insn.s_imm()) + '(' + get_xpr_name(insn.rs1(), current_disassembler->numeric_reg_names) + ')';
   }
 } store_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::string("(") + xpr_name[insn.rs1()] + ')';
+    return std::string("(") + get_xpr_name(insn.rs1(), current_disassembler->numeric_reg_names) + ')';
   }
 } base_only_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rd()];
+    return get_xpr_name(insn.rd(), current_disassembler->numeric_reg_names);
   }
 } xrd;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rs1()];
+    return get_xpr_name(insn.rs1(), current_disassembler->numeric_reg_names);
   }
 } xrs1;
 
@@ -110,37 +113,37 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rs2()];
+    return get_xpr_name(insn.rs2(), current_disassembler->numeric_reg_names);
   }
 } xrs2;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rs3()];
+    return get_xpr_name(insn.rs3(), current_disassembler->numeric_reg_names);
   }
 } xrs3;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rd()];
+    return get_fpr_name(insn.rd(), current_disassembler->numeric_reg_names);  
   }
 } frd;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rs1()];
+    return get_fpr_name(insn.rs1(), current_disassembler->numeric_reg_names);
   }
 } frs1;
-
+  
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rs2()];
+    return get_fpr_name(insn.rs2(), current_disassembler->numeric_reg_names);
   }
 } frs2;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rs3()];
+    return get_fpr_name(insn.rs3(), current_disassembler->numeric_reg_names);
   }
 } frs3;
 
@@ -214,55 +217,55 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rvc_rs1()];
+    return get_xpr_name(insn.rvc_rs1(), current_disassembler->numeric_reg_names);
   }
 } rvc_rs1;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rvc_rs2()];
+    return get_xpr_name(insn.rvc_rs2(), current_disassembler->numeric_reg_names);
   }
 } rvc_rs2;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rvc_rs2()];
+    return get_fpr_name(insn.rvc_rs2(), current_disassembler->numeric_reg_names);
   }
 } rvc_fp_rs2;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rvc_rs1s()];
+    return get_xpr_name(insn.rvc_rs1s(), current_disassembler->numeric_reg_names);
   }
 } rvc_rs1s;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[insn.rvc_rs2s()];
+    return get_xpr_name(insn.rvc_rs2s(), current_disassembler->numeric_reg_names);
   }
 } rvc_rs2s;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[RVC_R1S];
+    return get_xpr_name(RVC_R1S, current_disassembler->numeric_reg_names);
   }
 } rvc_r1s;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return xpr_name[RVC_R2S];
+    return get_xpr_name(RVC_R2S, current_disassembler->numeric_reg_names);
   }
 } rvc_r2s;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return fpr_name[insn.rvc_rs2s()];
+    return get_fpr_name(insn.rvc_rs2s(), current_disassembler->numeric_reg_names);
   }
 } rvc_fp_rs2s;
 
 struct : public arg_t {
   std::string to_string(insn_t UNUSED insn) const {
-    return xpr_name[X_SP];
+    return get_xpr_name(X_SP, current_disassembler->numeric_reg_names);
   }
 } rvc_sp;
 
@@ -306,37 +309,37 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_lwsp_imm()) + '(' + xpr_name[X_SP] + ')';
+    return std::to_string((int)insn.rvc_lwsp_imm()) + '(' + get_xpr_name(X_SP, current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_lwsp_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_ldsp_imm()) + '(' + xpr_name[X_SP] + ')';
+    return std::to_string((int)insn.rvc_ldsp_imm()) + '(' + get_xpr_name(X_SP, current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_ldsp_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_swsp_imm()) + '(' + xpr_name[X_SP] + ')';
+    return std::to_string((int)insn.rvc_swsp_imm()) + '(' + get_xpr_name(X_SP, current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_swsp_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_sdsp_imm()) + '(' + xpr_name[X_SP] + ')';
+    return std::to_string((int)insn.rvc_sdsp_imm()) + '(' + get_xpr_name(X_SP, current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_sdsp_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_lw_imm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
+    return std::to_string((int)insn.rvc_lw_imm()) + '(' + get_xpr_name(insn.rvc_rs1s(), current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_lw_address;
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::to_string((int)insn.rvc_ld_imm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
+    return std::to_string((int)insn.rvc_ld_imm()) + '(' + get_xpr_name(insn.rvc_rs1s(), current_disassembler->numeric_reg_names) + ')';
   }
 } rvc_ld_address;
 
@@ -360,7 +363,7 @@ struct : public arg_t {
 
 struct : public arg_t {
   std::string to_string(insn_t insn) const {
-    return std::string("(") + xpr_name[insn.rs1()] + ')';
+    return std::string("(") + get_xpr_name(insn.rs1(), current_disassembler->numeric_reg_names) + ')';
   }
 } v_address;
 
@@ -2396,6 +2399,8 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
 
 disassembler_t::disassembler_t(const isa_parser_t *isa)
 {
+  current_disassembler = this;
+  
   // highest priority: instructions explicitly enabled
   add_instructions(isa);
 
@@ -2446,6 +2451,10 @@ void NOINLINE disassembler_t::add_insn(disasm_insn_t* insn)
 
 disassembler_t::~disassembler_t()
 {
+  if (current_disassembler == this) {
+    current_disassembler = nullptr;
+  }
+
   for (size_t i = 0; i < HASH_SIZE+1; i++)
     for (size_t j = 0; j < chain[i].size(); j++)
       delete chain[i][j];

@@ -15,10 +15,18 @@ extern const char* xpr_name[NXPR];
 extern const char* fpr_name[NFPR];
 extern const char* vr_name[NVPR];
 extern const char* csr_name(int which);
+extern const char* get_xpr_name(int reg_num, bool numeric);
+extern const char* get_fpr_name(int reg_num, bool numeric);
+
+class disassembler_t;
 
 class arg_t
 {
+ protected:
+  const disassembler_t* disassembler;
  public:
+  arg_t() : disassembler(nullptr) {}
+  arg_t(const disassembler_t* _disassembler) : disassembler(_disassembler) {}
   virtual std::string to_string(insn_t val) const = 0;
   virtual ~arg_t() {}
 };
@@ -89,6 +97,8 @@ class disassembler_t
   const disasm_insn_t* lookup(insn_t insn) const;
 
   void add_insn(disasm_insn_t* insn);
+
+  bool numeric_reg_names = false;  // Flag to control register name display format
 
  private:
   static const int HASH_SIZE = 255;
