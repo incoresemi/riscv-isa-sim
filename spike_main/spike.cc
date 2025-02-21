@@ -48,6 +48,8 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --varch=<name>        RISC-V Vector uArch string [default %s]\n", DEFAULT_VARCH);
   fprintf(stderr, "  --pc=<address>        Override ELF entry point\n");
   fprintf(stderr, "  --hartids=<a,b,...>   Explicitly specify hartids, default is 0,1,...\n");
+  fprintf(stderr, "  --archids=<a,b,...>   Explicitly specify archids, can be duplicate\n");
+  fprintf(stderr, "  --mimpids=<a,b,...>   Explicitly specify mimpids, can be duplicate\n");
   fprintf(stderr, "  --ic=<S>:<W>:<B>      Instantiate a cache model with S sets,\n");
   fprintf(stderr, "  --dc=<S>:<W>:<B>        W ways, and B-byte blocks (with S and\n");
   fprintf(stderr, "  --l2=<S>:<W>:<B>        B both powers of 2).\n");
@@ -324,6 +326,46 @@ static std::vector<size_t> parse_hartids(const char *s)
   return hartids;
 }
 
+static std::vector<size_t> parse_archids(const char *s)
+{
+  std::string const str(s);
+  std::stringstream stream(str);
+  std::vector<size_t> archids;
+
+  size_t n;
+  while (stream >> n) {
+    archids.push_back(n);
+    if (stream.peek() == ',') stream.ignore();
+  }
+
+  if (archids.empty()) {
+    fprintf(stderr, "No arch IDs specified\n");
+    exit(-1);
+  }
+
+  return archids;
+}
+
+static std::vector<size_t> parse_mimpids(const char *s)
+{
+  std::string const str(s);
+  std::stringstream stream(str);
+  std::vector<size_t> mimpids;
+
+  size_t n;
+  while (stream >> n) {
+    mimpids.push_back(n);
+    if (stream.peek() == ',') stream.ignore();
+  }
+
+  if (mimpids.empty()) {
+    fprintf(stderr, "No mimp IDs specified\n");
+    exit(-1);
+  }
+
+  return mimpids;
+}
+
 int main(int argc, char** argv)
 {
   bool debug = false;
@@ -394,6 +436,14 @@ int main(int argc, char** argv)
   parser.option(0, "hartids", 1, [&](const char* s){
     cfg.hartids = parse_hartids(s);
     cfg.explicit_hartids = true;
+  });
+  parser.option(0, "archids", 1, [&](const char* s){
+    cfg.archids = parse_archids(s);
+    cfg.explicit_archids = true;
+  });
+  parser.option(0, "mimpids", 1, [&](const char* s){
+    cfg.mimpids = parse_mimpids(s);
+    cfg.explicit_mimpids = true;
   });
   parser.option(0, "ic", 1, [&](const char* s){ic.reset(new icache_sim_t(s));});
   parser.option(0, "dc", 1, [&](const char* s){dc.reset(new dcache_sim_t(s));});

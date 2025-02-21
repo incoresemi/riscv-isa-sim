@@ -76,6 +76,10 @@ public:
   std::optional<reg_t>    start_pc;
   std::vector<size_t>     hartids;
   bool                    explicit_hartids;
+  std::vector<size_t>     archids;
+  bool                    explicit_archids;
+  std::vector<size_t>     mimpids;
+  bool                    explicit_mimpids;
   bool                    real_time_clint;
   reg_t                   trigger_count;
 

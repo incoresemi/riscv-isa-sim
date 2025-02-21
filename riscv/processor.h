@@ -197,9 +197,9 @@ struct state_t
 class processor_t : public abstract_device_t
 {
 public:
-  processor_t(const isa_parser_t *isa, const cfg_t* cfg,
-              simif_t* sim, uint32_t id, bool halt_on_reset,
-              FILE *log_file, std::ostream& sout_); // because of command line option --log and -s we need both
+  processor_t(const isa_parser_t* isa, const cfg_t* cfg,
+              simif_t* sim, uint32_t id, uint32_t archid, uint32_t mimpid, bool halt_on_reset,
+              FILE* log_file, std::ostream& sout_); // because of command line option --log and -s we need both
   ~processor_t();
 
   const isa_parser_t &get_isa() { return *isa; }
@@ -213,6 +213,8 @@ public:
   void step(size_t n); // run for n cycles
   void put_csr(int which, reg_t val);
   uint32_t get_id() const { return id; }
+  uint32_t get_archid() const { return archid; }
+  uint32_t get_mimpid() const { return mimpid; }
   reg_t get_csr(int which, insn_t insn, bool write, bool peek = 0);
   reg_t get_csr(int which) { return get_csr(which, insn_t(0), false, true); }
   mmu_t* get_mmu() { return mmu; }
@@ -329,6 +331,8 @@ private:
   disassembler_t* disassembler;
   state_t state;
   uint32_t id;
+  uint32_t archid;
+  uint32_t mimpid;
   unsigned xlen;
   bool histogram_enabled;
   bool log_commits_enabled;

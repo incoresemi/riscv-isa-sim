@@ -30,9 +30,9 @@
 #define STATE state
 
 processor_t::processor_t(const isa_parser_t *isa, const cfg_t *cfg,
-                         simif_t* sim, uint32_t id, bool halt_on_reset,
+                         simif_t* sim, uint32_t id, uint32_t archid, uint32_t mimpid, bool halt_on_reset,
                          FILE* log_file, std::ostream& sout_)
-  : debug(false), halt_request(HR_NONE), isa(isa), cfg(cfg), sim(sim), id(id), xlen(0),
+  : debug(false), halt_request(HR_NONE), isa(isa), cfg(cfg), sim(sim), id(id), archid(archid), mimpid(mimpid), xlen(0),
   histogram_enabled(false), log_commits_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
   in_wfi(false), check_triggers_icount(false),
@@ -442,9 +442,9 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
 
   csrmap[CSR_SEED] = std::make_shared<seed_csr_t>(proc, CSR_SEED);
 
-  csrmap[CSR_MARCHID] = std::make_shared<const_csr_t>(proc, CSR_MARCHID, 5);
-  csrmap[CSR_MIMPID] = std::make_shared<const_csr_t>(proc, CSR_MIMPID, 0);
   csrmap[CSR_MVENDORID] = std::make_shared<const_csr_t>(proc, CSR_MVENDORID, 0);
+  csrmap[CSR_MARCHID] = std::make_shared<const_csr_t>(proc, CSR_MARCHID, proc->get_archid());
+  csrmap[CSR_MIMPID] = std::make_shared<const_csr_t>(proc, CSR_MIMPID, proc->get_mimpid());
   csrmap[CSR_MHARTID] = std::make_shared<const_csr_t>(proc, CSR_MHARTID, proc->get_id());
   csrmap[CSR_MCONFIGPTR] = std::make_shared<const_csr_t>(proc, CSR_MCONFIGPTR, 0);
   if (proc->extension_enabled_const('U')) {

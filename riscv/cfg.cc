@@ -43,6 +43,10 @@ cfg_t::cfg_t()
   mem_layout       = std::vector<mem_cfg_t>({mem_cfg_t(reg_t(DRAM_BASE), (size_t)2048 << 20)});
   hartids          = std::vector<size_t>({0});
   explicit_hartids = false;
+  archids          = std::vector<size_t>({5});  // Default archid is 5
+  explicit_archids = false;
+  mimpids          = std::vector<size_t>({0});
+  explicit_mimpids = false;
   real_time_clint  = false;
   trigger_count    = 4;
 }

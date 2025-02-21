@@ -99,7 +99,9 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
   debug_mmu = new mmu_t(this, cfg->endianness, NULL);
 
   for (size_t i = 0; i < cfg->nprocs(); i++) {
-    procs[i] = new processor_t(&isa, cfg, this, cfg->hartids[i], halted,
+    // If archids were not explicitly set, use default value of 5 for all harts
+    uint32_t archid = cfg->explicit_archids ? cfg->archids[i % cfg->archids.size()] : 5;
+    procs[i] = new processor_t(&isa, cfg, this, cfg->hartids[i], archid, cfg->mimpids[i], halted,
                                log_file.get(), sout_);
     harts[cfg->hartids[i]] = procs[i];
   }
