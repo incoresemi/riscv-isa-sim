@@ -42,7 +42,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
              const std::vector<std::string>& args,
              const debug_module_config_t &dm_config,
              const char *log_path,
-             bool dtb_enabled, const char *dtb_file,
+             bool dtb_enabled, bool rom_enabled, const char *dtb_file,
              bool socket_enabled,
              FILE *cmd_file) // needed for command line option --cmd
   : htif_t(args),
@@ -51,6 +51,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     mems(mems),
     procs(std::max(cfg->nprocs(), size_t(1))),
     dtb_enabled(dtb_enabled),
+    rom_enabled(rom_enabled),
     log_file(log_path),
     cmd_file(cmd_file),
     sout_(nullptr),
@@ -401,7 +402,7 @@ const char* sim_t::get_symbol(uint64_t paddr)
 
 void sim_t::reset()
 {
-  if (dtb_enabled)
+  if (rom_enabled)
     set_rom();
 }
 
