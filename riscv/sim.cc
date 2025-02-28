@@ -402,7 +402,7 @@ const char* sim_t::get_symbol(uint64_t paddr)
 
 void sim_t::reset()
 {
-  if (rom_enabled)
+  if (dtb_enabled && rom_enabled)
     set_rom();
 }
 
