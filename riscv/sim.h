@@ -30,7 +30,7 @@ public:
         std::vector<device_factory_t*> plugin_device_factories,
         const std::vector<std::string>& args,
         const debug_module_config_t &dm_config, const char *log_path,
-        bool dtb_enabled, const char *dtb_file,
+        bool dtb_enabled, bool rom_enabled, const char *dtb_file,
         bool socket_enabled,
         FILE *cmd_file); // needed for command line option --cmd
   ~sim_t();
@@ -75,6 +75,7 @@ private:
   std::string dts;
   std::string dtb;
   bool dtb_enabled;
+  bool rom_enabled;
   std::vector<std::shared_ptr<abstract_device_t>> devices;
   std::shared_ptr<clint_t> clint;
   std::shared_ptr<plic_t> plic;
