@@ -1,0 +1,113 @@
+
+Merging object attributes
+
+
+There are no discarded input sections
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+ITCM_RAM         0x0000000020004000 0x0000000000004000 xrw
+ONCHIP_ROM       0x0000000000200000 0x0000000000004000 xr
+DTCM_RAM         0x0000000020000000 0x0000000000004000 rw
+SRAM1            0x0000000020010000 0x0000000000010000 rw
+OFFCHIP_PSRAM    0x0000000060000000 0x0000000000100000 rw
+OFFCHIP_FLASH    0x0000000080000000 0x0000000000100000 xrw
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD /tmp/ccT3fWKw.o
+LOAD /tmp/ccvX1pAO.o
+LOAD /home/sampige/.local/lib/gcc/riscv64-unknown-elf/15.2.0/libgcc.a
+
+.text           0x0000000080000000      0x3dc
+ *(.text._start)
+ .text._start   0x0000000080000000       0x9a /tmp/ccT3fWKw.o
+                0x0000000080000000                _start
+ *(.text .text.*)
+ .text          0x000000008000009a        0x0 /tmp/ccT3fWKw.o
+ .text          0x000000008000009a      0x342 /tmp/ccvX1pAO.o
+                0x0000000080000148                main
+
+.rodata         0x00000000800003e0      0x208
+ *(.rodata .rodata.*)
+ .rodata.str1.8
+                0x00000000800003e0      0x1d8 /tmp/ccvX1pAO.o
+ .rodata        0x00000000800005b8       0x30 /tmp/ccvX1pAO.o
+                0x00000000800005b8                greeting
+                0x00000000800005d8                rom_constants
+ *(.srodata .srodata.*)
+
+.fast_code      0x0000000020004000       0x28 load address 0x00000000800005e8
+                0x0000000020004000                __fast_code_start = .
+ *(.fast_code)
+ .fast_code     0x0000000020004000       0x24 /tmp/ccvX1pAO.o
+                0x0000000020004000                fast_multiply
+                0x0000000020004006                fast_accumulate
+                0x0000000020004028                . = ALIGN (0x8)
+ *fill*         0x0000000020004024        0x4 
+                0x0000000020004028                __fast_code_end = .
+                0x00000000800005e8                __fast_code_load = LOADADDR (.fast_code)
+
+.rela.dyn       0x0000000020004028        0x0 load address 0x0000000080000610
+ .rela.text._start
+                0x0000000020004028        0x0 /tmp/ccT3fWKw.o
+
+.data           0x0000000020000000       0x18 load address 0x0000000080000610
+                0x0000000020000000                __data_start = .
+ *(.data .data.*)
+ .data          0x0000000020000000        0x0 /tmp/ccT3fWKw.o
+ .data          0x0000000020000000       0x10 /tmp/ccvX1pAO.o
+                0x0000000020000000                lookup_table
+ *(.sdata .sdata.*)
+ .sdata         0x0000000020000010        0x4 /tmp/ccvX1pAO.o
+                0x0000000020000010                initialized_var
+                0x0000000020000018                . = ALIGN (0x8)
+ *fill*         0x0000000020000014        0x4 
+                0x0000000020000018                __data_end = .
+                0x0000000080000610                __data_load = LOADADDR (.data)
+                0x0000000020000800                PROVIDE (__global_pointer$ = (ORIGIN (DTCM_RAM) + 0x800))
+
+.bss            0x0000000020010000       0x28
+                0x0000000020010000                __bss_start = .
+ *(.bss .bss.*)
+ .bss           0x0000000020010000        0x0 /tmp/ccT3fWKw.o
+ .bss           0x0000000020010000       0x20 /tmp/ccvX1pAO.o
+                0x0000000020010000                bss_array
+ *(.sbss .sbss.*)
+ .sbss          0x0000000020010020        0x4 /tmp/ccvX1pAO.o
+                0x0000000020010020                bss_counter
+ *(COMMON)
+                0x0000000020010028                . = ALIGN (0x8)
+ *fill*         0x0000000020010024        0x4 
+                0x0000000020010028                __bss_end = .
+
+.htif           0x0000000020010028       0x10
+ *(.htif)
+ .htif          0x0000000020010028       0x10 /tmp/ccT3fWKw.o
+                0x0000000020010028                tohost
+                0x0000000020010030                fromhost
+
+.psram_data     0x0000000060000000      0x400
+ *(.psram_data)
+ .psram_data    0x0000000060000000      0x400 /tmp/ccvX1pAO.o
+                0x0000000060000000                psram_buffer
+                0x0000000020020000                __stack_top = (ORIGIN (SRAM1) + LENGTH (SRAM1))
+OUTPUT(/workspace/memdemo.elf elf64-littleriscv)
+
+.riscv.attributes
+                0x0000000000000000       0x68
+ .riscv.attributes
+                0x0000000000000000       0x66 /tmp/ccT3fWKw.o
+ .riscv.attributes
+                0x0000000000000066       0x68 /tmp/ccvX1pAO.o
+
+.comment        0x0000000000000000        0xf
+ .comment       0x0000000000000000        0xf /tmp/ccvX1pAO.o
+                                         0x10 (size before relaxing)
+
+.note.GNU-stack
+                0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 /tmp/ccvX1pAO.o
