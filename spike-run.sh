@@ -19,6 +19,7 @@ Commands:
                              Compile a C program (--rv32 for 32-bit target)
   run [--cfg <file>] <prog>  Run a binary on Spike using config file
   pk  [--cfg <file>] <prog>  Run a binary on Spike with proxy kernel using config file
+  make [target...]           Run make in the workspace directory
   show-cmd [--cfg <file>]    Show the spike command that would be generated from config
   help                       Show this help message
 
@@ -432,6 +433,12 @@ cmd_pk() {
         spike "${spike_args[@]}" "$PK_BIN" "/workspace/$PROGRAM" "$@"
 }
 
+cmd_make() {
+    ensure_workspace
+    echo "==> Running make in $WORKSPACE ..."
+    make -C "$WORKSPACE" "$@"
+}
+
 cmd_show_cmd() {
     local cfg_file="$DEFAULT_CFG"
 
@@ -469,6 +476,7 @@ case "$COMMAND" in
     run)      cmd_run "$@" ;;
     pk)       cmd_pk "$@" ;;
     show-cmd) cmd_show_cmd "$@" ;;
+    make)     cmd_make "$@" ;;
     help)     usage ;;
     *)        usage ;;
 esac
