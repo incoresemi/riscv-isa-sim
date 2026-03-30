@@ -139,12 +139,12 @@ run-pk32: run-q15bench run-q15packed
 # ============================================================================
 
 run-q15bench-nop: q15bench
-	@echo "=== Running WITHOUT P extension (expect illegal instruction) ==="
-	-$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $<
+	@echo "=== Running WITHOUT P extension (scalar only) ==="
+	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
 run-q15packed-nop: q15packed
-	@echo "=== Running WITHOUT P extension (expect illegal instruction) ==="
-	-$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $<
+	@echo "=== Running WITHOUT P extension (scalar only) ==="
+	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
 # ============================================================================
 #  Convenience: run everything
@@ -178,8 +178,8 @@ help:
 	@echo "  run-baremetal    Run all bare-metal programs"
 	@echo "  run-q15demo      Run Q.15 demo on RV64 with pk"
 	@echo "  run-pk32         Run all RV32 P-ext benchmarks"
-	@echo "  run-q15bench-nop Run q15bench WITHOUT P ext (illegal insn)"
-	@echo "  run-q15packed-nop Run q15packed WITHOUT P ext (illegal insn)"
+	@echo "  run-q15bench-nop Run q15bench WITHOUT P ext (scalar only)"
+	@echo "  run-q15packed-nop Run q15packed WITHOUT P ext (scalar only)"
 	@echo "  run-all          Run everything"
 	@echo ""
 	@echo "  clean            Remove built binaries"

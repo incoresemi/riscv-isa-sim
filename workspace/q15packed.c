@@ -117,14 +117,21 @@ static void init_vectors(void)
 static inline int16_t lo16(uint32_t w) { return (int16_t)(w & 0xFFFF); }
 static inline int16_t hi16(uint32_t w) { return (int16_t)(w >> 16); }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     int i, iter;
     uint32_t t0, t1;
 
     init_vectors();
 
-    printf("=== Q.15 Packed-Memory SIMD32 Benchmark (RV32 + P ext) ===\n");
+    int p_ext = 1;
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--no-simd") == 0)
+            p_ext = 0;
+    }
+
+    printf("=== Q.15 Packed-Memory SIMD32 Benchmark (RV32) ===\n");
+    printf("P extension: %s\n", p_ext ? "available" : "NOT available (scalar only)");
     printf("Data layout: 2 x Q.15 pre-packed per 32-bit word\n");
     printf("Vector size: %d elements (%d packed words), Iterations: %d\n\n",
            N, NPACKED, ITERS);
@@ -149,20 +156,6 @@ int main(void)
             ((uint32_t)(uint16_t)result_scalar[2*i+1] << 16)
           | (uint16_t)result_scalar[2*i];
     }
-
-    /* ================================================================
-     * SIMD PATH: operates on pre-packed uint32_t arrays
-     *   Inner loop: lw, lw, khm16, sw
-     *   4 instructions per 2 elements = 2 insns/element
-     * ================================================================ */
-    t0 = rdcycle();
-    for (iter = 0; iter < ITERS; iter++) {
-        for (i = 0; i < NPACKED; i++) {
-            packed_result_simd[i] = p_khm16(packed_a[i], packed_b[i]);
-        }
-    }
-    t1 = rdcycle();
-    uint32_t cycles_simd = t1 - t0;
 
     /* ================================================================
      * SCALAR-ON-PACKED PATH: scalar code working on packed arrays
@@ -198,55 +191,95 @@ int main(void)
     t1 = rdcycle();
     uint32_t cycles_scalar_packed = t1 - t0;
 
-    /* ---- Validate all three paths ---- */
-    int match_simd = 1, match_sop = 1;
-    int mismatch_simd = 0, mismatch_sop = 0;
+    uint32_t cycles_simd = 0;
 
-    for (i = 0; i < NPACKED; i++) {
-        if (packed_result_scalar[i] != packed_result_simd[i]) {
-            if (mismatch_simd < 3)
-                printf("  SIMD MISMATCH [%d]: expect=0x%08lx got=0x%08lx\n",
-                       i, (unsigned long)packed_result_scalar[i],
-                       (unsigned long)packed_result_simd[i]);
-            match_simd = 0;
-            mismatch_simd++;
+    if (p_ext) {
+        /* ================================================================
+         * SIMD PATH: operates on pre-packed uint32_t arrays
+         *   Inner loop: lw, lw, khm16, sw
+         *   4 instructions per 2 elements = 2 insns/element
+         * ================================================================ */
+        t0 = rdcycle();
+        for (iter = 0; iter < ITERS; iter++) {
+            for (i = 0; i < NPACKED; i++) {
+                packed_result_simd[i] = p_khm16(packed_a[i], packed_b[i]);
+            }
         }
-        if (packed_result_scalar[i] != packed_result_scalar_on_packed[i]) {
-            if (mismatch_sop < 3)
-                printf("  SoP  MISMATCH [%d]: expect=0x%08lx got=0x%08lx\n",
-                       i, (unsigned long)packed_result_scalar[i],
-                       (unsigned long)packed_result_scalar_on_packed[i]);
-            match_sop = 0;
-            mismatch_sop++;
+        t1 = rdcycle();
+        cycles_simd = t1 - t0;
+
+        /* ---- Validate all three paths ---- */
+        int match_simd = 1, match_sop = 1;
+        int mismatch_simd = 0, mismatch_sop = 0;
+
+        for (i = 0; i < NPACKED; i++) {
+            if (packed_result_scalar[i] != packed_result_simd[i]) {
+                if (mismatch_simd < 3)
+                    printf("  SIMD MISMATCH [%d]: expect=0x%08lx got=0x%08lx\n",
+                           i, (unsigned long)packed_result_scalar[i],
+                           (unsigned long)packed_result_simd[i]);
+                match_simd = 0;
+                mismatch_simd++;
+            }
+            if (packed_result_scalar[i] != packed_result_scalar_on_packed[i]) {
+                if (mismatch_sop < 3)
+                    printf("  SoP  MISMATCH [%d]: expect=0x%08lx got=0x%08lx\n",
+                           i, (unsigned long)packed_result_scalar[i],
+                           (unsigned long)packed_result_scalar_on_packed[i]);
+                match_sop = 0;
+                mismatch_sop++;
+            }
         }
+
+        printf("Validation:\n");
+        printf("  SIMD vs Scalar:             %s\n", match_simd ? "PASS" : "FAIL");
+        printf("  Scalar-on-Packed vs Scalar: %s\n\n", match_sop ? "PASS" : "FAIL");
+
+        /* ---- Sample output ---- */
+        printf("Sample results (first 16 elements):\n");
+        printf("  Scalar:   ");
+        for (i = 0; i < 8; i++)
+            printf(" %6d %6d", lo16(packed_result_scalar[i]), hi16(packed_result_scalar[i]));
+        printf("\n  SIMD:     ");
+        for (i = 0; i < 8; i++)
+            printf(" %6d %6d", lo16(packed_result_simd[i]), hi16(packed_result_simd[i]));
+        printf("\n  Float:    ");
+        for (i = 0; i < 8; i++)
+            printf(" %6.3f %6.3f",
+                   q15_to_float(lo16(packed_result_scalar[i])),
+                   q15_to_float(hi16(packed_result_scalar[i])));
+        printf("\n\n");
+
+        /* ---- Saturation test ---- */
+        uint32_t sat_in = 0x80008000u;  /* two Q.15(-1.0) packed */
+        uint32_t sat_out = p_khm16(sat_in, sat_in);
+        printf("Saturation test: packed(-1.0, -1.0) * packed(-1.0, -1.0)\n");
+        printf("  Result: lo=%d hi=%d  (expect %d, %d)\n",
+               lo16(sat_out), hi16(sat_out), INT16_MAX, INT16_MAX);
+        printf("  %s\n\n", (sat_out == 0x7FFF7FFFu) ? "PASS" : "FAIL");
+    } else {
+        /* Validate scalar-on-packed vs scalar (no SIMD to compare) */
+        int match_sop = 1;
+        for (i = 0; i < NPACKED; i++) {
+            if (packed_result_scalar[i] != packed_result_scalar_on_packed[i]) {
+                match_sop = 0;
+                break;
+            }
+        }
+        printf("Validation:\n");
+        printf("  Scalar-on-Packed vs Scalar: %s\n\n", match_sop ? "PASS" : "FAIL");
+
+        printf("Sample results (first 16 elements):\n");
+        printf("  Scalar:   ");
+        for (i = 0; i < 8; i++)
+            printf(" %6d %6d", lo16(packed_result_scalar[i]), hi16(packed_result_scalar[i]));
+        printf("\n  Float:    ");
+        for (i = 0; i < 8; i++)
+            printf(" %6.3f %6.3f",
+                   q15_to_float(lo16(packed_result_scalar[i])),
+                   q15_to_float(hi16(packed_result_scalar[i])));
+        printf("\n\n");
     }
-
-    printf("Validation:\n");
-    printf("  SIMD vs Scalar:          %s\n", match_simd ? "PASS" : "FAIL");
-    printf("  Scalar-on-Packed vs Scalar: %s\n\n", match_sop ? "PASS" : "FAIL");
-
-    /* ---- Sample output ---- */
-    printf("Sample results (first 16 elements):\n");
-    printf("  Scalar:   ");
-    for (i = 0; i < 8; i++)
-        printf(" %6d %6d", lo16(packed_result_scalar[i]), hi16(packed_result_scalar[i]));
-    printf("\n  SIMD:     ");
-    for (i = 0; i < 8; i++)
-        printf(" %6d %6d", lo16(packed_result_simd[i]), hi16(packed_result_simd[i]));
-    printf("\n  Float:    ");
-    for (i = 0; i < 8; i++)
-        printf(" %6.3f %6.3f",
-               q15_to_float(lo16(packed_result_scalar[i])),
-               q15_to_float(hi16(packed_result_scalar[i])));
-    printf("\n\n");
-
-    /* ---- Saturation test ---- */
-    uint32_t sat_in = 0x80008000u;  /* two Q.15(-1.0) packed */
-    uint32_t sat_out = p_khm16(sat_in, sat_in);
-    printf("Saturation test: packed(-1.0, -1.0) * packed(-1.0, -1.0)\n");
-    printf("  Result: lo=%d hi=%d  (expect %d, %d)\n",
-           lo16(sat_out), hi16(sat_out), INT16_MAX, INT16_MAX);
-    printf("  %s\n\n", (sat_out == 0x7FFF7FFFu) ? "PASS" : "FAIL");
 
     /* ---- Performance ---- */
     unsigned long total_ops = (unsigned long)N * ITERS;
@@ -265,23 +298,28 @@ int main(void)
            "Scalar-on-Packed (extract)",
            (unsigned long)cycles_scalar_packed,
            (float)cycles_scalar_packed / total_ops, "~7");
-    printf("  %-28s %10lu %10.2f %10s\n",
-           "SIMD32 khm16 (packed lw/sw)",
-           (unsigned long)cycles_simd,
-           (float)cycles_simd / total_ops, "~2");
 
-    printf("\n  Speedup vs Scalar:            %.2fx\n",
-           (float)cycles_scalar / (float)cycles_simd);
-    printf("  Speedup vs Scalar-on-Packed:  %.2fx\n",
-           (float)cycles_scalar_packed / (float)cycles_simd);
+    if (p_ext) {
+        printf("  %-28s %10lu %10.2f %10s\n",
+               "SIMD32 khm16 (packed lw/sw)",
+               (unsigned long)cycles_simd,
+               (float)cycles_simd / total_ops, "~2");
 
-    if (cycles_simd > 0) {
-        printf("\n  Cycle savings vs Scalar:           %ld (%.1f%%)\n",
-               (long)((long)cycles_scalar - (long)cycles_simd),
-               (1.0f - (float)cycles_simd / (float)cycles_scalar) * 100.0f);
-        printf("  Cycle savings vs Scalar-on-Packed: %ld (%.1f%%)\n",
-               (long)((long)cycles_scalar_packed - (long)cycles_simd),
-               (1.0f - (float)cycles_simd / (float)cycles_scalar_packed) * 100.0f);
+        printf("\n  Speedup vs Scalar:            %.2fx\n",
+               (float)cycles_scalar / (float)cycles_simd);
+        printf("  Speedup vs Scalar-on-Packed:  %.2fx\n",
+               (float)cycles_scalar_packed / (float)cycles_simd);
+
+        if (cycles_simd > 0) {
+            printf("\n  Cycle savings vs Scalar:           %ld (%.1f%%)\n",
+                   (long)((long)cycles_scalar - (long)cycles_simd),
+                   (1.0f - (float)cycles_simd / (float)cycles_scalar) * 100.0f);
+            printf("  Cycle savings vs Scalar-on-Packed: %ld (%.1f%%)\n",
+                   (long)((long)cycles_scalar_packed - (long)cycles_simd),
+                   (1.0f - (float)cycles_simd / (float)cycles_scalar_packed) * 100.0f);
+        }
+    } else {
+        printf("\n  (SIMD benchmark skipped — P extension not available)\n");
     }
 
     printf("\n=== Memory Access Analysis (per 2 elements) ===\n\n");
