@@ -20,6 +20,7 @@ Commands:
   run [--cfg <file>] <prog>  Run a binary on Spike using config file
   pk  [--cfg <file>] <prog>  Run a binary on Spike with proxy kernel using config file
   make [target...]           Run make in the workspace directory
+  package [--version X.Y.Z]  Create a .deb package (Ubuntu 24.04 amd64)
   show-cmd [--cfg <file>]    Show the spike command that would be generated from config
   help                       Show this help message
 
@@ -434,9 +435,207 @@ cmd_pk() {
 }
 
 cmd_make() {
+    ensure_image
     ensure_workspace
-    echo "==> Running make in $WORKSPACE ..."
-    make -C "$WORKSPACE" "$@"
+    local PREFIX
+    PREFIX="$(get_prefix)"
+    echo "==> Running make in $WORKSPACE (inside container) ..."
+    docker run --rm -v "$WORKSPACE:/workspace" "$IMAGE" \
+        make -C /workspace PREFIX="$PREFIX" "$@"
+}
+
+cmd_package() {
+    ensure_image
+
+    local PKG_PREFIX="/opt/riscv"
+    local PKG_NAME="riscv-toolchain"
+    local PKG_VERSION="1.0.0"
+    local PKG_ARCH="amd64"
+    local STAGING="$SCRIPT_DIR/pkg-staging"
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --version)
+                [ $# -lt 2 ] && { echo "Error: --version requires a value."; exit 1; }
+                PKG_VERSION="$2"; shift 2 ;;
+            *) echo "Error: Unknown package option '$1'"; exit 1 ;;
+        esac
+    done
+
+    local CURRENT_PREFIX
+    CURRENT_PREFIX="$(get_prefix)"
+
+    # If the image was built with a different prefix, rebuild with /opt/riscv
+    if [ "$CURRENT_PREFIX" != "$PKG_PREFIX" ]; then
+        echo "==> Current build uses prefix '$CURRENT_PREFIX', rebuilding with '$PKG_PREFIX' for packaging..."
+        cmd_build --prefix "$PKG_PREFIX"
+    fi
+
+    echo "==> Creating .deb package (${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}.deb)..."
+
+    # Clean staging area
+    rm -rf "$STAGING"
+    mkdir -p "$STAGING$PKG_PREFIX"
+    mkdir -p "$STAGING/DEBIAN"
+    mkdir -p "$STAGING/etc/profile.d"
+    mkdir -p "$STAGING/etc/ld.so.conf.d"
+
+    # --- Extract toolchain from container ---
+    echo "    Extracting toolchain from container..."
+    docker run --rm -v "$STAGING$PKG_PREFIX:/staging" "$IMAGE" \
+        bash -c "cp -a $PKG_PREFIX/* /staging/"
+
+    # --- Bundle shared library dependencies from container ---
+    echo "    Bundling shared library dependencies..."
+    docker run --rm -v "$STAGING$PKG_PREFIX/lib:/staging-lib" "$IMAGE" \
+        bash -c '
+            # Find all shared libs spike needs that are not in the base system
+            LIBS=$(ldd '"$PKG_PREFIX"'/bin/spike 2>/dev/null | grep "=> /" | awk "{print \$3}")
+            for lib in $LIBS; do
+                case "$(basename "$lib")" in
+                    libboost*|libicu*)
+                        cp -L "$lib" /staging-lib/
+                        echo "      Bundled: $(basename "$lib")"
+                        ;;
+                esac
+            done
+        '
+
+    # --- Patch RPATH on spike to find bundled libs ---
+    echo "    Patching RPATH on binaries..."
+    docker run --rm -v "$STAGING$PKG_PREFIX:/staging" "$IMAGE" \
+        bash -c '
+            apt-get update -qq && apt-get install -y -qq patchelf >/dev/null 2>&1
+            # Patch spike and any .so files
+            for bin in /staging/bin/spike /staging/lib/libriscv.so /staging/lib/libsoftfloat.so /staging/lib/libcustomext.so; do
+                if [ -f "$bin" ]; then
+                    patchelf --set-rpath "'"$PKG_PREFIX"'/lib" "$bin" 2>/dev/null && \
+                        echo "      Patched: $(basename "$bin")"
+                fi
+            done
+        '
+
+    # --- Strip debug info to reduce size ---
+    echo "    Stripping debug info..."
+    docker run --rm -v "$STAGING$PKG_PREFIX:/staging" "$IMAGE" \
+        bash -c '
+            find /staging/bin -type f -executable | while read f; do
+                if file "$f" | grep -q "ELF.*x86-64"; then
+                    strip --strip-debug "$f" 2>/dev/null && echo "      Stripped: $(basename "$f")"
+                fi
+            done
+            find /staging/lib -name "*.so*" -type f | while read f; do
+                if file "$f" | grep -q "ELF.*x86-64"; then
+                    strip --strip-debug "$f" 2>/dev/null && echo "      Stripped: $(basename "$f")"
+                fi
+            done
+            find /staging/libexec -type f -executable 2>/dev/null | while read f; do
+                if file "$f" | grep -q "ELF.*x86-64"; then
+                    strip --strip-debug "$f" 2>/dev/null
+                fi
+            done
+        '
+
+    # --- Compute installed size in KB ---
+    local INSTALLED_SIZE
+    INSTALLED_SIZE=$(du -sk "$STAGING$PKG_PREFIX" | awk '{print $1}')
+
+    # --- Create DEBIAN/control ---
+    cat > "$STAGING/DEBIAN/control" <<EOF
+Package: $PKG_NAME
+Version: $PKG_VERSION
+Section: devel
+Priority: optional
+Architecture: $PKG_ARCH
+Installed-Size: $INSTALLED_SIZE
+Depends: libc6 (>= 2.35), libstdc++6 (>= 12), zlib1g
+Maintainer: RISC-V Spike Workspace <noreply@example.com>
+Description: RISC-V toolchain with Spike simulator and P-extension support
+ Complete RISC-V development toolchain including:
+  - RV64GC and RV32GC GNU cross-compilers (GCC 15.2)
+  - Spike ISA simulator with P-extension (packed SIMD) support
+  - Proxy kernel (pk) for both RV64 and RV32
+  - All required shared libraries bundled (boost, ICU)
+ .
+ Installs to $PKG_PREFIX. Add $PKG_PREFIX/bin to your PATH.
+EOF
+
+    # --- Create DEBIAN/conffiles (preserve user edits on upgrade) ---
+    cat > "$STAGING/DEBIAN/conffiles" <<EOF
+/etc/ld.so.conf.d/riscv-toolchain.conf
+/etc/profile.d/riscv-toolchain.sh
+EOF
+
+    # --- Create DEBIAN/postinst ---
+    cat > "$STAGING/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+case "$1" in
+    configure|triggered)
+        ldconfig
+        ;;
+esac
+POSTINST
+    chmod 755 "$STAGING/DEBIAN/postinst"
+
+    # --- Create DEBIAN/prerm ---
+    cat > "$STAGING/DEBIAN/prerm" <<'PRERM'
+#!/bin/sh
+set -e
+# Nothing special needed before removal
+PRERM
+    chmod 755 "$STAGING/DEBIAN/prerm"
+
+    # --- Create DEBIAN/postrm ---
+    cat > "$STAGING/DEBIAN/postrm" <<'POSTRM'
+#!/bin/sh
+set -e
+case "$1" in
+    remove|purge)
+        ldconfig
+        ;;
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Don't touch ldconfig during upgrades — the new version's
+        # postinst will run ldconfig after it installs.
+        ;;
+esac
+POSTRM
+    chmod 755 "$STAGING/DEBIAN/postrm"
+
+    # --- Register /opt/riscv/lib with the system linker ---
+    cat > "$STAGING/etc/ld.so.conf.d/riscv-toolchain.conf" <<EOF
+$PKG_PREFIX/lib
+EOF
+
+    # --- Create PATH profile script ---
+    cat > "$STAGING/etc/profile.d/riscv-toolchain.sh" <<EOF
+# Added by riscv-toolchain package
+if [ -d "$PKG_PREFIX/bin" ]; then
+    export PATH="$PKG_PREFIX/bin:\$PATH"
+fi
+EOF
+
+    # --- Build the .deb ---
+    echo "    Building .deb package..."
+    dpkg-deb --build --root-owner-group "$STAGING" \
+        "$SCRIPT_DIR/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}.deb"
+
+    # --- Clean up staging (files are root-owned from docker cp) ---
+    docker run --rm -v "$STAGING:/staging" "$IMAGE" bash -c "rm -rf /staging/*"
+    rmdir "$STAGING"
+
+    local DEB_FILE="$SCRIPT_DIR/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}.deb"
+    local DEB_SIZE
+    DEB_SIZE=$(du -sh "$DEB_FILE" | awk '{print $1}')
+
+    echo ""
+    echo "==> Package created: $DEB_FILE ($DEB_SIZE)"
+    echo ""
+    echo "Install with:"
+    echo "    sudo dpkg -i $DEB_FILE"
+    echo ""
+    echo "Uninstall with:"
+    echo "    sudo dpkg -r $PKG_NAME"
 }
 
 cmd_show_cmd() {
@@ -477,6 +676,7 @@ case "$COMMAND" in
     pk)       cmd_pk "$@" ;;
     show-cmd) cmd_show_cmd "$@" ;;
     make)     cmd_make "$@" ;;
+    package)  cmd_package "$@" ;;
     help)     usage ;;
     *)        usage ;;
 esac
