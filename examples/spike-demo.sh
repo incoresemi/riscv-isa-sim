@@ -10,6 +10,7 @@ set -euo pipefail
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROG_NAME="$(basename "$0")"
 CFG_PK32="$SCRIPT_DIR/spike-pk.cfg"
 CFG_PK64="$SCRIPT_DIR/spike-pk64.cfg"
 CFG_BAREMETAL="$SCRIPT_DIR/spike.cfg"
@@ -41,7 +42,7 @@ PREFIX=""
 
 usage() {
     cat <<EOF
-Usage: $0 <command> [args...]
+Usage: $PROG_NAME <command> [args...]
 
 Commands:
   gcc [--rv32] <source.c> [-o out] [flags...]
@@ -63,15 +64,15 @@ Config file:
   Format: key = value (one per line, # for comments)
 
 Examples:
-  $0 gcc hello.c                        # Compile for RV64
-  $0 gcc --rv32 hello.c                 # Compile for RV32
-  $0 pk hello                           # Run with default config (RV32+P)
-  $0 pk --cfg spike-pk-nop.cfg hello    # Run without P extension
-  $0 run --cfg spike.cfg prog.elf       # Run bare-metal ELF
-  $0 make                               # Build all examples
-  $0 make run-all                       # Build and run all
-  $0 make run-q15bench                  # Run specific benchmark
-  $0 show-cmd --cfg spike.cfg           # Preview the spike command line
+  $PROG_NAME gcc hello.c                        # Compile for RV64
+  $PROG_NAME gcc --rv32 hello.c                 # Compile for RV32
+  $PROG_NAME pk hello                           # Run with default config (RV32+P)
+  $PROG_NAME pk --cfg spike-pk-nop.cfg hello    # Run without P extension
+  $PROG_NAME run --cfg spike.cfg prog.elf       # Run bare-metal ELF
+  $PROG_NAME make                               # Build all examples
+  $PROG_NAME make run-all                       # Build and run all
+  $PROG_NAME make run-q15bench                  # Run specific benchmark
+  $PROG_NAME show-cmd --cfg spike.cfg           # Preview the spike command line
 
 Toolchain detection (in order):
   1. --prefix <path> argument
@@ -92,7 +93,7 @@ ensure_prefix() {
         echo ""
         echo "  sudo dpkg -i riscv-toolchain_*.deb"
         echo "  # or"
-        echo "  $0 --prefix /path/to/riscv <command>"
+        echo "  $PROG_NAME --prefix /path/to/riscv <command>"
         exit 1
     fi
 }
@@ -260,7 +261,7 @@ cmd_gcc() {
 
     if [ $# -lt 1 ]; then
         echo "Error: No source file specified."
-        echo "Usage: $0 gcc [--rv32] <source.c> [-o output] [gcc flags...]"
+        echo "Usage: $PROG_NAME gcc [--rv32] <source.c> [-o output] [gcc flags...]"
         exit 1
     fi
 
@@ -314,7 +315,7 @@ cmd_run() {
 
     if [ $# -lt 1 ]; then
         echo "Error: No program specified."
-        echo "Usage: $0 run [--cfg <file>] <program> [args...]"
+        echo "Usage: $PROG_NAME run [--cfg <file>] <program> [args...]"
         exit 1
     fi
 
@@ -356,7 +357,7 @@ cmd_pk() {
 
     if [ $# -lt 1 ]; then
         echo "Error: No program specified."
-        echo "Usage: $0 pk [--cfg <file>] <program> [args...]"
+        echo "Usage: $PROG_NAME pk [--cfg <file>] <program> [args...]"
         exit 1
     fi
 
@@ -365,7 +366,7 @@ cmd_pk() {
 
     if [ ! -f "$PROGRAM" ]; then
         echo "Error: Program '$PROGRAM' not found."
-        echo "Compile it first with: $0 gcc ${PROGRAM}.c"
+        echo "Compile it first with: $PROG_NAME gcc ${PROGRAM}.c"
         exit 1
     fi
 
