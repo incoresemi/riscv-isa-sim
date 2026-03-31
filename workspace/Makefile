@@ -40,7 +40,7 @@ BAREMETAL_ASM  = exitonly.elf chartest.elf storetest.elf
 BAREMETAL_C    = memdemo.elf
 
 # -- PK RV64 --
-PK64_PROGS     = q15demo
+PK64_PROGS     = q15demo hello
 
 # -- PK RV32 (P-extension packed SIMD32 benchmarks) --
 PK32_PROGS     = q15bench q15packed
@@ -50,7 +50,7 @@ ALL = $(BAREMETAL_ASM) $(BAREMETAL_C) $(PK64_PROGS) $(PK32_PROGS)
 .PHONY: all clean help
 .PHONY: run-baremetal run-pk64 run-pk32 run-all
 .PHONY: run-exitonly run-chartest run-storetest run-memdemo
-.PHONY: run-q15demo run-q15bench run-q15packed
+.PHONY: run-hello run-q15demo run-q15bench run-q15packed
 .PHONY: run-q15bench-nop run-q15packed-nop
 
 all: $(ALL)
@@ -79,6 +79,9 @@ memdemo.elf: memdemo.c start.S memdemo.ld
 # ============================================================================
 #  PK RV64: C programs using proxy kernel (printf, etc.)
 # ============================================================================
+
+hello: hello.c
+	$(RV64_GCC) $(RV64_CFLAGS) -o $@ $<
 
 q15demo: q15demo.c
 	$(RV64_GCC) $(RV64_CFLAGS) -o $@ $<
@@ -117,10 +120,13 @@ run-baremetal: run-exitonly
 #  Run targets — PK RV64
 # ============================================================================
 
+run-hello: hello
+	$(SPIKE) $(PK64) $<
+
 run-q15demo: q15demo
 	$(SPIKE) --isa=$(ISA_BAREMETAL) $(PK64) $<
 
-run-pk64: run-q15demo
+run-pk64: run-hello run-q15demo
 
 # ============================================================================
 #  Run targets — PK RV32 with P extension
@@ -150,7 +156,7 @@ run-q15packed-nop: q15packed
 #  Convenience: run everything
 # ============================================================================
 
-run-all: run-baremetal run-q15demo run-pk32
+run-all: run-baremetal run-pk64 run-pk32
 
 # ============================================================================
 #  Clean
@@ -166,6 +172,7 @@ clean:
 help:
 	@echo "Build targets:"
 	@echo "  all              Build everything"
+	@echo "  hello            PK RV64: Hello World"
 	@echo "  exitonly.elf     Bare-metal RV64: minimal exit test"
 	@echo "  chartest.elf     Bare-metal RV64: HTIF character output"
 	@echo "  storetest.elf    Bare-metal RV64: memory store test"
@@ -175,8 +182,10 @@ help:
 	@echo "  q15packed        PK RV32: Q.15 packed-memory SIMD32 benchmark"
 	@echo ""
 	@echo "Run targets:"
+	@echo "  run-hello        Run Hello World on RV64 with pk"
 	@echo "  run-baremetal    Run all bare-metal programs"
 	@echo "  run-q15demo      Run Q.15 demo on RV64 with pk"
+	@echo "  run-pk64         Run all RV64 pk programs"
 	@echo "  run-pk32         Run all RV32 P-ext benchmarks"
 	@echo "  run-q15bench-nop Run q15bench WITHOUT P ext (scalar only)"
 	@echo "  run-q15packed-nop Run q15packed WITHOUT P ext (scalar only)"
