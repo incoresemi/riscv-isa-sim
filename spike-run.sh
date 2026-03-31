@@ -449,7 +449,7 @@ cmd_package() {
 
     local PKG_PREFIX="/opt/riscv"
     local PKG_NAME="riscv-toolchain"
-    local PKG_VERSION="1.0.1"
+    local PKG_VERSION="1.0.2"
     local PKG_ARCH="amd64"
     local STAGING="$SCRIPT_DIR/pkg-staging"
 
@@ -548,7 +548,7 @@ Section: devel
 Priority: optional
 Architecture: $PKG_ARCH
 Installed-Size: $INSTALLED_SIZE
-Depends: libc6 (>= 2.35), libstdc++6 (>= 12), zlib1g
+Depends: libc6 (>= 2.35), libstdc++6 (>= 12), zlib1g, device-tree-compiler
 Maintainer: RISC-V Spike Workspace <noreply@example.com>
 Description: RISC-V toolchain with Spike simulator and P-extension support
  Complete RISC-V development toolchain including:
