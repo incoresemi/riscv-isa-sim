@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "rvp_intrinsic.h"
+#include <rvp_intrinsic.h>
 
 /* ---- Q.15 helpers ---- */
 

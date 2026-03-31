@@ -15,9 +15,10 @@ PK64        = $(PREFIX)/riscv64-unknown-elf/bin/pk
 PK32        = $(PREFIX)/riscv32-unknown-elf/bin/pk
 
 # --- Flags ---
+INCLUDES      = -I. -I$(PREFIX)/include
 RV64_ASFLAGS  = -nostdlib -nostartfiles -Wl,-n,-Ttext,0x80000000
-RV64_CFLAGS   = -O2
-RV32_CFLAGS   = -O2 -march=rv32gc -mabi=ilp32d
+RV64_CFLAGS   = -O2 $(INCLUDES)
+RV32_CFLAGS   = -O2 -march=rv32gc -mabi=ilp32d $(INCLUDES)
 
 # --- Spike ISA strings ---
 ISA_BAREMETAL = RV64IMAFDCP_zicntr_zihpm

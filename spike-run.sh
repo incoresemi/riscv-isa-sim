@@ -650,9 +650,19 @@ if [ -d "$PKG_PREFIX/bin" ]; then
 fi
 EOF
 
+    # --- Install rvp_intrinsic.h into toolchain include path ---
+    echo "    Installing rvp_intrinsic.h..."
+    local EXAMPLES_DIR="$SCRIPT_DIR/examples"
+    docker run --rm \
+        -v "$STAGING$PKG_PREFIX/include:/inc-dest" \
+        -v "$EXAMPLES_DIR:/examples-src:ro" \
+        "$IMAGE" bash -c '
+            cp /examples-src/rvp_intrinsic.h /inc-dest/
+            chmod 644 /inc-dest/rvp_intrinsic.h
+        '
+
     # --- Bundle examples ---
     echo "    Packaging examples..."
-    local EXAMPLES_DIR="$SCRIPT_DIR/examples"
     local SHARE_REL="share/riscv-toolchain/examples"
     docker run --rm -v "$STAGING$PKG_PREFIX:/staging" "$IMAGE" \
         mkdir -p "/staging/$SHARE_REL"
@@ -666,9 +676,10 @@ EOF
             cp /examples-src/*.c /share-dest/
             cp /examples-src/*.S /share-dest/
             cp /examples-src/*.ld /share-dest/
+            cp /examples-src/*.h /share-dest/
             cp /examples-src/mapviz.py /share-dest/ 2>/dev/null || true
             chmod +x /share-dest/spike-demo.sh
-            chmod 644 /share-dest/Makefile /share-dest/*.cfg /share-dest/*.c /share-dest/*.S /share-dest/*.ld
+            chmod 644 /share-dest/Makefile /share-dest/*.cfg /share-dest/*.c /share-dest/*.S /share-dest/*.ld /share-dest/*.h
         '
 
     # --- Build the .deb ---

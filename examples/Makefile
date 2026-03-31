@@ -30,9 +30,12 @@ PK64        = $(PREFIX)/riscv64-unknown-elf/bin/pk
 PK32        = $(PREFIX)/riscv32-unknown-elf/bin/pk
 
 # --- Flags ---
+# -I. finds headers in the local examples dir; -I$(PREFIX)/include finds
+# headers installed by the .deb package (e.g., rvp_intrinsic.h)
+INCLUDES      = -I. -I$(PREFIX)/include
 RV64_ASFLAGS  = -nostdlib -nostartfiles -Wl,-n,-Ttext,0x80000000
-RV64_CFLAGS   = -O2
-RV32_CFLAGS   = -O2 -march=rv32gc -mabi=ilp32d
+RV64_CFLAGS   = -O2 $(INCLUDES)
+RV32_CFLAGS   = -O2 -march=rv32gc -mabi=ilp32d $(INCLUDES)
 
 # --- Spike ISA strings ---
 ISA_BAREMETAL = RV64IMAFDCP_zicntr_zihpm
