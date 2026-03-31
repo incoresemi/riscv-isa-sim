@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "rvp_intrinsic.h"
 
 /* ---- Q.15 helpers ---- */
 
@@ -44,41 +45,11 @@ static inline uint32_t rdcycle(void)
     return c;
 }
 
-/* ---- P-extension: khm16 packed SIMD32 ---- */
-
-/* Pack two Q.15 values into a 32-bit word */
-static inline uint32_t pack_2x16(int16_t lo, int16_t hi)
-{
-    return ((uint32_t)(uint16_t)hi << 16) | (uint16_t)lo;
-}
-
-/* Unpack low element from 32-bit packed */
-static inline int16_t unpack_lo(uint32_t packed)
-{
-    return (int16_t)(packed & 0xFFFF);
-}
-
-/* Unpack high element from 32-bit packed */
-static inline int16_t unpack_hi(uint32_t packed)
-{
-    return (int16_t)(packed >> 16);
-}
-
-/*
- * khm16 rd, rs1, rs2   (packed SIMD32: 2 x Q.15 multiply)
- * Encoding: funct7=1000011 | rs2 | rs1 | funct3=000 | rd | opcode=1110111
- * .insn r 0x77, 0, 0x43, rd, rs1, rs2
- */
-static inline uint32_t p_khm16(uint32_t a, uint32_t b)
-{
-    uint32_t result;
-    __asm__ volatile (
-        ".insn r 0x77, 0, 0x43, %0, %1, %2"
-        : "=r"(result)
-        : "r"(a), "r"(b)
-    );
-    return result;
-}
+/* ---- P-extension helpers (via rvp_intrinsic.h) ---- */
+#define pack_2x16  __rv_pack16
+#define unpack_lo  __rv_lo16
+#define unpack_hi  __rv_hi16
+#define p_khm16    __rv_khm16
 
 /* ---- Benchmark parameters ---- */
 

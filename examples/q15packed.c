@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "rvp_intrinsic.h"
 
 /* ---- Q.15 helpers ---- */
 
@@ -46,18 +47,8 @@ static inline uint32_t rdcycle(void)
     return c;
 }
 
-/* ---- P-extension: khm16 ---- */
-
-static inline uint32_t p_khm16(uint32_t a, uint32_t b)
-{
-    uint32_t result;
-    __asm__ volatile (
-        ".insn r 0x77, 0, 0x43, %0, %1, %2"
-        : "=r"(result)
-        : "r"(a), "r"(b)
-    );
-    return result;
-}
+/* ---- P-extension: khm16 (via rvp_intrinsic.h) ---- */
+#define p_khm16 __rv_khm16
 
 /* ---- Benchmark parameters ---- */
 
@@ -113,9 +104,9 @@ static void init_vectors(void)
     }
 }
 
-/* Extract lo/hi from packed word for display */
-static inline int16_t lo16(uint32_t w) { return (int16_t)(w & 0xFFFF); }
-static inline int16_t hi16(uint32_t w) { return (int16_t)(w >> 16); }
+/* Extract lo/hi from packed word for display (via rvp_intrinsic.h) */
+#define lo16 __rv_lo16
+#define hi16 __rv_hi16
 
 int main(int argc, char *argv[])
 {
