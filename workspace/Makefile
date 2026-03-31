@@ -42,7 +42,7 @@ BAREMETAL_C    = memdemo.elf
 PK64_PROGS     = q15demo hello
 
 # -- PK RV32 (P-extension packed SIMD32 benchmarks) --
-PK32_PROGS     = q15bench q15packed
+PK32_PROGS     = q15bench q15packed p32_simd_demo
 
 ALL = $(BAREMETAL_ASM) $(BAREMETAL_C) $(PK64_PROGS) $(PK32_PROGS)
 
@@ -93,6 +93,9 @@ q15bench: q15bench.c
 	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 q15packed: q15packed.c
+	$(GCC) $(RV32_CFLAGS) -o $@ $<
+
+p32_simd_demo: p32_simd_demo.c rvp_intrinsic.h
 	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 # ============================================================================

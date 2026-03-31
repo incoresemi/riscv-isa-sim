@@ -21,6 +21,7 @@ examples/q15bench
 examples/q15packed
 examples/hello
 examples/memdemo.elf
+examples/p32_simd_demo
 
 # External toolchains
 incore-toolchain/

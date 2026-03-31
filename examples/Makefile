@@ -57,15 +57,15 @@ BAREMETAL_C    = memdemo.elf
 PK64_PROGS     = q15demo hello
 
 # -- PK RV32 (P-extension packed SIMD32 benchmarks) --
-PK32_PROGS     = q15bench q15packed
+PK32_PROGS     = q15bench q15packed p32_simd_demo
 
 ALL = $(BAREMETAL_ASM) $(BAREMETAL_C) $(PK64_PROGS) $(PK32_PROGS)
 
 .PHONY: all clean help
 .PHONY: run-baremetal run-pk64 run-pk32 run-all
 .PHONY: run-exitonly run-chartest run-storetest run-memdemo
-.PHONY: run-hello run-q15demo run-q15bench run-q15packed
-.PHONY: run-q15bench-nop run-q15packed-nop
+.PHONY: run-hello run-q15demo run-q15bench run-q15packed run-p32demo
+.PHONY: run-q15bench-nop run-q15packed-nop run-p32demo-nop
 
 all: $(ALL)
 
@@ -108,6 +108,9 @@ q15bench: q15bench.c
 	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 q15packed: q15packed.c
+	$(GCC) $(RV32_CFLAGS) -o $@ $<
+
+p32_simd_demo: p32_simd_demo.c rvp_intrinsic.h
 	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 # ============================================================================
@@ -162,8 +165,15 @@ run-q15bench-nop: q15bench
 	@echo "=== Running WITHOUT P extension (scalar only) ==="
 	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
+run-p32demo: p32_simd_demo
+	$(SPIKE) --isa=$(ISA_RV32_P) -m$(PK_MEM) $(PK32) $<
+
 run-q15packed-nop: q15packed
 	@echo "=== Running WITHOUT P extension (scalar only) ==="
+	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
+
+run-p32demo-nop: p32_simd_demo
+	@echo "=== Running WITHOUT P extension ==="
 	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
 # ============================================================================
@@ -194,6 +204,7 @@ help:
 	@echo "  q15demo          PK RV64: Q.15 SIMD demo (khm16)"
 	@echo "  q15bench         PK RV32: Q.15 packed SIMD32 benchmark"
 	@echo "  q15packed        PK RV32: Q.15 packed-memory SIMD32 benchmark"
+	@echo "  p32_simd_demo    PK RV32: P-extension intrinsics demo"
 	@echo ""
 	@echo "Run targets:"
 	@echo "  run-hello        Run Hello World on RV64 with pk"
@@ -202,7 +213,9 @@ help:
 	@echo "  run-pk64         Run all RV64 pk programs"
 	@echo "  run-pk32         Run all RV32 P-ext benchmarks"
 	@echo "  run-q15bench-nop Run q15bench WITHOUT P ext (scalar only)"
+	@echo "  run-p32demo      Run P-extension intrinsics demo"
 	@echo "  run-q15packed-nop Run q15packed WITHOUT P ext (scalar only)"
+	@echo "  run-p32demo-nop  Run p32demo WITHOUT P ext"
 	@echo "  run-all          Run everything"
 	@echo ""
 	@echo "  clean            Remove built binaries"
