@@ -68,7 +68,7 @@ ALL = $(BAREMETAL_ASM) $(BAREMETAL_C) $(PK64_PROGS) $(PK32_PROGS)
 .PHONY: run-baremetal run-pk64 run-pk32 run-all
 .PHONY: run-exitonly run-chartest run-storetest run-memdemo
 .PHONY: run-hello run-q15demo run-q15bench run-q15packed run-p32demo
-.PHONY: run-q15bench-nop run-q15packed-nop run-p32demo-nop
+.PHONY: run-q15bench-nop run-q15packed-nop
 
 all: $(ALL)
 
@@ -175,9 +175,6 @@ run-q15packed-nop: q15packed
 	@echo "=== Running WITHOUT P extension (scalar only) ==="
 	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
-run-p32demo-nop: p32_simd_demo
-	@echo "=== Running WITHOUT P extension ==="
-	$(SPIKE) --isa=$(ISA_RV32_NOP) -m$(PK_MEM) $(PK32) $< --no-simd
 
 # ============================================================================
 #  Convenience: run everything
@@ -218,7 +215,6 @@ help:
 	@echo "  run-q15bench-nop Run q15bench WITHOUT P ext (scalar only)"
 	@echo "  run-p32demo      Run P-extension intrinsics demo"
 	@echo "  run-q15packed-nop Run q15packed WITHOUT P ext (scalar only)"
-	@echo "  run-p32demo-nop  Run p32demo WITHOUT P ext"
 	@echo "  run-all          Run everything"
 	@echo ""
 	@echo "  clean            Remove built binaries"
