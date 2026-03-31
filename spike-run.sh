@@ -597,6 +597,13 @@ case "\$1" in
         echo "    export PATH=\"$PKG_PREFIX/bin:\\\$PATH\""
         echo ""
         echo "Or start a new login session."
+        echo ""
+        echo "Examples are in $PKG_PREFIX/share/riscv-toolchain/examples/"
+        echo "To get started, copy them to your home directory:"
+        echo ""
+        echo "    cp -r $PKG_PREFIX/share/riscv-toolchain/examples ~/riscv-examples"
+        echo "    cd ~/riscv-examples"
+        echo "    ./spike-demo.sh make run-hello"
         ;;
 esac
 POSTINST
@@ -643,6 +650,27 @@ if [ -d "$PKG_PREFIX/bin" ]; then
 fi
 EOF
 
+    # --- Bundle examples ---
+    echo "    Packaging examples..."
+    local EXAMPLES_DIR="$SCRIPT_DIR/examples"
+    local SHARE_REL="share/riscv-toolchain/examples"
+    docker run --rm -v "$STAGING$PKG_PREFIX:/staging" "$IMAGE" \
+        mkdir -p "/staging/$SHARE_REL"
+    docker run --rm \
+        -v "$STAGING$PKG_PREFIX/$SHARE_REL:/share-dest" \
+        -v "$EXAMPLES_DIR:/examples-src:ro" \
+        "$IMAGE" bash -c '
+            cp /examples-src/spike-demo.sh /share-dest/
+            cp /examples-src/Makefile /share-dest/
+            cp /examples-src/*.cfg /share-dest/
+            cp /examples-src/*.c /share-dest/
+            cp /examples-src/*.S /share-dest/
+            cp /examples-src/*.ld /share-dest/
+            cp /examples-src/mapviz.py /share-dest/ 2>/dev/null || true
+            chmod +x /share-dest/spike-demo.sh
+            chmod 644 /share-dest/Makefile /share-dest/*.cfg /share-dest/*.c /share-dest/*.S /share-dest/*.ld
+        '
+
     # --- Build the .deb ---
     echo "    Building .deb package..."
     dpkg-deb --build --root-owner-group "$STAGING" \
@@ -666,6 +694,7 @@ EOF
     echo "  - Install toolchain to $PKG_PREFIX"
     echo "  - Run ldconfig to register shared libraries"
     echo "  - Add $PKG_PREFIX/bin to system PATH (/etc/environment)"
+    echo "  - Install examples to $PKG_PREFIX/share/riscv-toolchain/examples/"
     echo ""
     echo "Uninstall with:"
     echo "    sudo dpkg -r $PKG_NAME"
