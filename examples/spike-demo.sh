@@ -250,11 +250,12 @@ auto_config() {
 cmd_gcc() {
     ensure_prefix
 
-    local ARCH="64"
+    local ARCH_FLAGS=""
+    local ARCH_LABEL="RV64"
 
     while [ $# -gt 0 ]; do
         case "$1" in
-            --rv32) ARCH="32"; shift ;;
+            --rv32) ARCH_FLAGS="-march=rv32gc -mabi=ilp32d"; ARCH_LABEL="RV32"; shift ;;
             *) break ;;
         esac
     done
@@ -273,7 +274,7 @@ cmd_gcc() {
         exit 1
     fi
 
-    local GCC="$PREFIX/bin/riscv${ARCH}-unknown-elf-gcc"
+    local GCC="$PREFIX/bin/riscv64-unknown-elf-gcc"
     if [ ! -x "$GCC" ]; then
         echo "Error: Compiler not found: $GCC"
         exit 1
@@ -287,12 +288,12 @@ cmd_gcc() {
 
     if [ "$has_output" -eq 0 ]; then
         local OUTNAME="${SOURCE%.c}"
-        echo "==> Compiling $SOURCE with $(basename "$GCC")..."
-        "$GCC" -O2 -o "$OUTNAME" "$SOURCE" "$@"
+        echo "==> Compiling $SOURCE for $ARCH_LABEL with $(basename "$GCC")..."
+        "$GCC" $ARCH_FLAGS -O2 -o "$OUTNAME" "$SOURCE" "$@"
         echo "==> Compiled: $OUTNAME"
     else
-        echo "==> Compiling $SOURCE with $(basename "$GCC")..."
-        "$GCC" -O2 "$SOURCE" "$@"
+        echo "==> Compiling $SOURCE for $ARCH_LABEL with $(basename "$GCC")..."
+        "$GCC" $ARCH_FLAGS -O2 "$SOURCE" "$@"
         echo "==> Done."
     fi
 }

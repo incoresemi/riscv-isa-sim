@@ -34,20 +34,27 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Build the RISC-V GNU Toolchain — RV64 (newlib / bare-metal)
+# Build the RISC-V GNU Toolchain — single multilib build (RV64 + RV32)
+#
+# Base: rv64gc / lp64d
+# Multilib variants include RV32 with and without floating-point,
+# matching the InCore toolchain approach.
+#
+# The multilib generator format is: arch-abi--
+#   (empty reuse and subset fields = standalone library set)
 RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain.git /tmp/riscv-gnu-toolchain && \
     cd /tmp/riscv-gnu-toolchain && \
     mkdir -p $RISCV && \
-    ./configure --prefix=$RISCV --with-arch=rv64gc --with-abi=lp64d && \
+    ./configure --prefix=$RISCV \
+        --with-arch=rv64gc --with-abi=lp64d \
+        --with-multilib-generator="\
+rv32gc-ilp32d--;\
+rv32imac-ilp32--;\
+rv32im-ilp32--;\
+rv64gc-lp64d--;\
+rv64imac-lp64--" && \
     make -j$(nproc) && \
     rm -rf /tmp/riscv-gnu-toolchain
-
-# Build the RISC-V GNU Toolchain — RV32 (newlib / bare-metal)
-RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain.git /tmp/riscv-gnu-toolchain32 && \
-    cd /tmp/riscv-gnu-toolchain32 && \
-    ./configure --prefix=$RISCV --with-arch=rv32gc --with-abi=ilp32d && \
-    make -j$(nproc) && \
-    rm -rf /tmp/riscv-gnu-toolchain32
 
 # Build Spike (riscv-isa-sim) from local source
 COPY . /tmp/riscv-isa-sim
@@ -67,11 +74,21 @@ RUN git clone --depth 1 https://github.com/riscv-software-src/riscv-pk.git /tmp/
     make install && \
     rm -rf /tmp/riscv-pk
 
-# Build the RISC-V Proxy Kernel — RV32 pk
+# Build the RISC-V Proxy Kernel — RV32 pk (using multilib compiler)
 RUN git clone --depth 1 https://github.com/riscv-software-src/riscv-pk.git /tmp/riscv-pk32 && \
     cd /tmp/riscv-pk32 && \
     mkdir build32 && cd build32 && \
-    ../configure --prefix=$RISCV --host=riscv32-unknown-elf && \
+    ../configure \
+        --prefix=$RISCV \
+        --host=riscv32-unknown-elf \
+        --with-arch=rv32gc_zicsr_zifencei \
+        CC=riscv64-unknown-elf-gcc \
+        OBJCOPY=riscv64-unknown-elf-objcopy \
+        AR=riscv64-unknown-elf-ar \
+        RANLIB=riscv64-unknown-elf-ranlib \
+        READELF=riscv64-unknown-elf-readelf \
+        CFLAGS="-march=rv32gc -mabi=ilp32d" \
+        LDFLAGS="-march=rv32gc -mabi=ilp32d" && \
     make -j$(nproc) && \
     make install && \
     rm -rf /tmp/riscv-pk32

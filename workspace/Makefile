@@ -7,10 +7,9 @@
 #    PK RV32 + P-ext  — run with: spike --isa=RV32...P... pk32 <prog>
 # ============================================================================
 
-# --- Toolchain ---
+# --- Toolchain (multilib: single compiler targets both RV64 and RV32) ---
 PREFIX     ?= $(HOME)/.local
-RV64_GCC    = $(PREFIX)/bin/riscv64-unknown-elf-gcc
-RV32_GCC    = $(PREFIX)/bin/riscv32-unknown-elf-gcc
+GCC         = $(PREFIX)/bin/riscv64-unknown-elf-gcc
 SPIKE       = $(PREFIX)/bin/spike
 PK64        = $(PREFIX)/riscv64-unknown-elf/bin/pk
 PK32        = $(PREFIX)/riscv32-unknown-elf/bin/pk
@@ -18,7 +17,7 @@ PK32        = $(PREFIX)/riscv32-unknown-elf/bin/pk
 # --- Flags ---
 RV64_ASFLAGS  = -nostdlib -nostartfiles -Wl,-n,-Ttext,0x80000000
 RV64_CFLAGS   = -O2
-RV32_CFLAGS   = -O2
+RV32_CFLAGS   = -O2 -march=rv32gc -mabi=ilp32d
 
 # --- Spike ISA strings ---
 ISA_BAREMETAL = RV64IMAFDCP_zicntr_zihpm
@@ -60,20 +59,20 @@ all: $(ALL)
 # ============================================================================
 
 exitonly.elf: exitonly.S
-	$(RV64_GCC) $(RV64_ASFLAGS) -o $@ $<
+	$(GCC) $(RV64_ASFLAGS) -o $@ $<
 
 chartest.elf: chartest.S
-	$(RV64_GCC) $(RV64_ASFLAGS) -o $@ $<
+	$(GCC) $(RV64_ASFLAGS) -o $@ $<
 
 storetest.elf: storetest.S
-	$(RV64_GCC) $(RV64_ASFLAGS) -o $@ $<
+	$(GCC) $(RV64_ASFLAGS) -o $@ $<
 
 # ============================================================================
 #  Bare-metal RV64: C with custom startup + linker script
 # ============================================================================
 
 memdemo.elf: memdemo.c start.S memdemo.ld
-	$(RV64_GCC) $(RV64_CFLAGS) -mcmodel=medany -nostdlib -nostartfiles \
+	$(GCC) $(RV64_CFLAGS) -mcmodel=medany -nostdlib -nostartfiles \
 		-T memdemo.ld -o $@ start.S memdemo.c
 
 # ============================================================================
@@ -81,20 +80,20 @@ memdemo.elf: memdemo.c start.S memdemo.ld
 # ============================================================================
 
 hello: hello.c
-	$(RV64_GCC) $(RV64_CFLAGS) -o $@ $<
+	$(GCC) $(RV64_CFLAGS) -o $@ $<
 
 q15demo: q15demo.c
-	$(RV64_GCC) $(RV64_CFLAGS) -o $@ $<
+	$(GCC) $(RV64_CFLAGS) -o $@ $<
 
 # ============================================================================
 #  PK RV32 + P-extension: packed SIMD32 benchmarks
 # ============================================================================
 
 q15bench: q15bench.c
-	$(RV32_GCC) $(RV32_CFLAGS) -o $@ $<
+	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 q15packed: q15packed.c
-	$(RV32_GCC) $(RV32_CFLAGS) -o $@ $<
+	$(GCC) $(RV32_CFLAGS) -o $@ $<
 
 # ============================================================================
 #  Run targets — bare-metal (use spike.cfg memory map, no pk)

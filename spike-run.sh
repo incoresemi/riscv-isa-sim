@@ -291,12 +291,13 @@ cmd_gcc() {
     ensure_image
     ensure_workspace
 
-    local ARCH="64"
+    local ARCH_FLAGS=""
+    local ARCH_LABEL="RV64"
 
     # Parse --rv32 option
     while [ $# -gt 0 ]; do
         case "$1" in
-            --rv32) ARCH="32"; shift ;;
+            --rv32) ARCH_FLAGS="-march=rv32gc -mabi=ilp32d"; ARCH_LABEL="RV32"; shift ;;
             *) break ;;
         esac
     done
@@ -320,10 +321,10 @@ cmd_gcc() {
         fi
     fi
 
-    local GCC="riscv${ARCH}-unknown-elf-gcc"
-    echo "==> Compiling $SOURCE with $GCC..."
+    local GCC="riscv64-unknown-elf-gcc"
+    echo "==> Compiling $SOURCE for $ARCH_LABEL with $GCC..."
     docker run --rm -v "$WORKSPACE:/workspace" "$IMAGE" \
-        "$GCC" -o "/workspace/${SOURCE%.c}" "/workspace/$SOURCE" "$@"
+        "$GCC" $ARCH_FLAGS -o "/workspace/${SOURCE%.c}" "/workspace/$SOURCE" "$@"
     echo "==> Compiled: ${SOURCE%.c}"
 }
 
@@ -449,7 +450,7 @@ cmd_package() {
 
     local PKG_PREFIX="/opt/riscv"
     local PKG_NAME="riscv-toolchain"
-    local PKG_VERSION="1.0.2"
+    local PKG_VERSION="2.0.0"
     local PKG_ARCH="amd64"
     local STAGING="$SCRIPT_DIR/pkg-staging"
 
@@ -550,9 +551,9 @@ Architecture: $PKG_ARCH
 Installed-Size: $INSTALLED_SIZE
 Depends: libc6 (>= 2.35), libstdc++6 (>= 12), zlib1g, device-tree-compiler
 Maintainer: RISC-V Spike Workspace <noreply@example.com>
-Description: RISC-V toolchain with Spike simulator and P-extension support
+Description: RISC-V multilib toolchain with Spike simulator and P-extension support
  Complete RISC-V development toolchain including:
-  - RV64GC and RV32GC GNU cross-compilers (GCC 15.2)
+  - Single multilib GCC cross-compiler targeting both RV64 and RV32
   - Spike ISA simulator with P-extension (packed SIMD) support
   - Proxy kernel (pk) for both RV64 and RV32
   - All required shared libraries bundled (boost, ICU)

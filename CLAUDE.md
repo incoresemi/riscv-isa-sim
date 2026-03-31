@@ -8,15 +8,25 @@ Fork of [riscv-isa-sim](https://github.com/riscv-software-src/riscv-isa-sim) (Sp
 
 ### Docker (builds everything from source)
 ```bash
-./spike-run.sh build --prefix ~/.local   # Build Docker image with RV64+RV32 toolchains
-./spike-run.sh install                   # Install to host at ~/.local
+./spike-run.sh build --prefix /opt/riscv  # Build Docker image with multilib toolchain
+./spike-run.sh install                    # Install to host
+./spike-run.sh package                    # Create .deb package
 ```
 
-### Host tools (after install)
+### Host tools (after install or dpkg -i)
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
-# Available: spike, riscv64-unknown-elf-gcc, riscv32-unknown-elf-gcc
-# PK: ~/.local/riscv{32,64}-unknown-elf/bin/pk
+export PATH="/opt/riscv/bin:$PATH"
+# Single multilib compiler: riscv64-unknown-elf-gcc (targets both RV64 and RV32)
+# RV32 via: riscv64-unknown-elf-gcc -march=rv32gc -mabi=ilp32d
+# PK: /opt/riscv/riscv{32,64}-unknown-elf/bin/pk
+```
+
+### Examples (standalone, no Docker needed)
+```bash
+cd examples
+./spike-demo.sh make              # Build all examples
+./spike-demo.sh make run-all      # Build and run all
+./spike-demo.sh pk hello          # Auto-detects RV32/RV64 from ELF
 ```
 
 ### Workspace Makefile
