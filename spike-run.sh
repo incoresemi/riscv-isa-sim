@@ -541,6 +541,12 @@ cmd_package() {
     local INSTALLED_SIZE
     INSTALLED_SIZE=$(du -sk "$STAGING$PKG_PREFIX" | awk '{print $1}')
 
+    # --- Capture git metadata ---
+    local GIT_HASH GIT_BRANCH GIT_DATE
+    GIT_HASH="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
+    GIT_BRANCH="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
+    GIT_DATE="$(git -C "$SCRIPT_DIR" log -1 --format=%ci 2>/dev/null || echo "unknown")"
+
     # --- Create DEBIAN/control ---
     cat > "$STAGING/DEBIAN/control" <<EOF
 Package: $PKG_NAME
@@ -550,16 +556,23 @@ Priority: optional
 Architecture: $PKG_ARCH
 Installed-Size: $INSTALLED_SIZE
 Depends: libc6 (>= 2.35), libstdc++6 (>= 12), zlib1g, device-tree-compiler
+Vcs-Git: https://github.com/makarkul/riscv-isa-sim.git
+Vcs-Branch: $GIT_BRANCH
+Vcs-Commit: $GIT_HASH
+Vcs-Date: $GIT_DATE
 Maintainer: RISC-V Spike Workspace <noreply@example.com>
 Description: RISC-V multilib toolchain with Spike simulator and P-extension support
  Complete RISC-V development toolchain including:
   - Single multilib GCC cross-compiler targeting both RV64 and RV32
   - Spike ISA simulator with P-extension (packed SIMD) support
   - Proxy kernel (pk) for both RV64 and RV32
+  - P-extension intrinsic header (rvp_intrinsic.h)
   - All required shared libraries bundled (boost, ICU)
  .
  Installs to $PKG_PREFIX. PATH is updated automatically via
  /etc/environment and /etc/profile.d/riscv-toolchain.sh.
+ .
+ Built from commit $GIT_HASH ($GIT_BRANCH).
 EOF
 
     # --- Create DEBIAN/conffiles (preserve user edits on upgrade) ---
