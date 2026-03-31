@@ -449,7 +449,7 @@ cmd_package() {
 
     local PKG_PREFIX="/opt/riscv"
     local PKG_NAME="riscv-toolchain"
-    local PKG_VERSION="1.0.0"
+    local PKG_VERSION="1.0.1"
     local PKG_ARCH="amd64"
     local STAGING="$SCRIPT_DIR/pkg-staging"
 
@@ -557,7 +557,8 @@ Description: RISC-V toolchain with Spike simulator and P-extension support
   - Proxy kernel (pk) for both RV64 and RV32
   - All required shared libraries bundled (boost, ICU)
  .
- Installs to $PKG_PREFIX. Add $PKG_PREFIX/bin to your PATH.
+ Installs to $PKG_PREFIX. PATH is updated automatically via
+ /etc/environment and /etc/profile.d/riscv-toolchain.sh.
 EOF
 
     # --- Create DEBIAN/conffiles (preserve user edits on upgrade) ---
@@ -567,12 +568,34 @@ EOF
 EOF
 
     # --- Create DEBIAN/postinst ---
-    cat > "$STAGING/DEBIAN/postinst" <<'POSTINST'
+    cat > "$STAGING/DEBIAN/postinst" <<POSTINST
 #!/bin/sh
 set -e
-case "$1" in
+case "\$1" in
     configure|triggered)
+        # Update shared library cache
         ldconfig
+
+        # Add to system PATH via /etc/environment (affects all users, all shells)
+        if [ -f /etc/environment ]; then
+            if ! grep -q "$PKG_PREFIX/bin" /etc/environment 2>/dev/null; then
+                sed -i 's|^PATH="\(.*\)"|PATH="$PKG_PREFIX/bin:\1"|' /etc/environment
+                # If sed didn't match (no PATH= line), append it
+                if ! grep -q "$PKG_PREFIX/bin" /etc/environment 2>/dev/null; then
+                    echo 'PATH="$PKG_PREFIX/bin:\$PATH"' >> /etc/environment
+                fi
+            fi
+        fi
+
+        echo ""
+        echo "==> RISC-V toolchain installed to $PKG_PREFIX"
+        echo ""
+        echo "PATH has been updated in /etc/environment and /etc/profile.d/."
+        echo "To use in your current shell, run:"
+        echo ""
+        echo "    export PATH=\"$PKG_PREFIX/bin:\\\$PATH\""
+        echo ""
+        echo "Or start a new login session."
         ;;
 esac
 POSTINST
@@ -587,16 +610,20 @@ PRERM
     chmod 755 "$STAGING/DEBIAN/prerm"
 
     # --- Create DEBIAN/postrm ---
-    cat > "$STAGING/DEBIAN/postrm" <<'POSTRM'
+    cat > "$STAGING/DEBIAN/postrm" <<POSTRM
 #!/bin/sh
 set -e
-case "$1" in
+case "\$1" in
     remove|purge)
         ldconfig
+        # Remove from /etc/environment
+        if [ -f /etc/environment ]; then
+            sed -i 's|$PKG_PREFIX/bin:||g' /etc/environment
+        fi
         ;;
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-        # Don't touch ldconfig during upgrades — the new version's
-        # postinst will run ldconfig after it installs.
+        # Don't touch ldconfig or PATH during upgrades — the new version's
+        # postinst will handle it.
         ;;
 esac
 POSTRM
@@ -633,6 +660,11 @@ EOF
     echo ""
     echo "Install with:"
     echo "    sudo dpkg -i $DEB_FILE"
+    echo ""
+    echo "This will:"
+    echo "  - Install toolchain to $PKG_PREFIX"
+    echo "  - Run ldconfig to register shared libraries"
+    echo "  - Add $PKG_PREFIX/bin to system PATH (/etc/environment)"
     echo ""
     echo "Uninstall with:"
     echo "    sudo dpkg -r $PKG_NAME"
