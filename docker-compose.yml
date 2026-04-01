@@ -1,0 +1,11 @@
+services:
+  spike:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: spike-sim
+    container_name: spike-sim
+    volumes:
+      - ./workspace:/workspace
+    stdin_open: true
+    tty: true

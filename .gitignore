@@ -7,3 +7,21 @@ autom4te.cache/
 .gdb_history
 .#*
 *~
+
+# Build artifacts
+*.elf
+*.deb
+*.map.html
+workspace/q15demo
+workspace/q15bench
+workspace/q15packed
+workspace/hello
+examples/q15demo
+examples/q15bench
+examples/q15packed
+examples/hello
+examples/memdemo.elf
+examples/p32_simd_demo
+
+# External toolchains
+incore-toolchain/
