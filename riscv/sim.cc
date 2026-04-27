@@ -380,7 +380,7 @@ void sim_t::set_rom()
   rom.resize((rom.size() + align - 1) / align * align);
 
   std::shared_ptr<rom_device_t> boot_rom(new rom_device_t(rom));
-  add_device(DEFAULT_RSTVEC, boot_rom);
+  add_device(cfg->rstvec, boot_rom);
 }
 
 char* sim_t::addr_to_mem(reg_t paddr) {

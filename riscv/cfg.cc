@@ -49,4 +49,5 @@ cfg_t::cfg_t()
   explicit_mimpids = false;
   real_time_clint  = false;
   trigger_count    = 4;
+  rstvec           = DEFAULT_RSTVEC;
 }

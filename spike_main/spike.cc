@@ -68,6 +68,7 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --dtb=<path>          Use specified device tree blob [default: auto-generate]\n");
   fprintf(stderr, "  --disable-dtb         Don't write the device tree blob into memory\n");
   fprintf(stderr, "  --disable-rom         Dont enable the default bootrom at reset PC\n");
+  fprintf(stderr, "  --rstvec=<addr>       Reset vector address [default: 0x1000]\n");
   fprintf(stderr, "  --kernel=<path>       Load kernel flat image into memory\n");
   fprintf(stderr, "  --initrd=<path>       Load kernel initrd into memory\n");
   fprintf(stderr, "  --bootargs=<args>     Provide custom bootargs for kernel [default: %s]\n",
@@ -463,6 +464,7 @@ int main(int argc, char** argv)
   parser.option(0, "dump-dts", 0, [&](const char UNUSED *s){dump_dts = true;});
   parser.option(0, "disable-dtb", 0, [&](const char UNUSED *s){dtb_enabled = false;});
   parser.option(0, "disable-rom", 0, [&](const char UNUSED *s){rom_enabled = false;});
+  parser.option(0, "rstvec", 1, [&](const char* s){cfg.rstvec = strtoull(s, 0, 0);});
   parser.option(0, "dtb", 1, [&](const char *s){dtb_file = s;});
   parser.option(0, "kernel", 1, [&](const char* s){kernel = s;});
   parser.option(0, "initrd", 1, [&](const char* s){initrd = s;});

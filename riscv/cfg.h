@@ -74,6 +74,7 @@ public:
   reg_t                   pmpgranularity;
   std::vector<mem_cfg_t>  mem_layout;
   std::optional<reg_t>    start_pc;
+  reg_t                   rstvec;
   std::vector<size_t>     hartids;
   bool                    explicit_hartids;
   std::vector<size_t>     archids;
