@@ -1,9 +1,5 @@
 P_64_UPROFILE({
-  rd = rs1 - rs2;
-  if (rd > rs1) {
-    rd >>= 1;
-    rd |= ((reg_t)1 << 63);
-  } else {
-    rd >>= 1;
-  }
+  reg_t diff = rs1 - rs2;
+  reg_t borrow = (rs2 > rs1) ? 1 : 0;
+  rd = (diff >> 1) | (borrow << 63);
 })

@@ -1,11 +1,11 @@
 require_extension(EXT_ZPSFOPERAND);
-sreg_t res = 0;
 if (xlen == 32) {
-  res = RS1_PAIR;
-  res += sext_xlen(P_SH(RS2, 0) * P_SH(RS2, 1));
-  WRITE_RD_PAIR(res);
+  __int128 res = (__int128)(sreg_t)RS1_PAIR
+               + (__int128)((sreg_t)P_SH(RS2, 0) * (sreg_t)P_SH(RS2, 1));
+  WRITE_RD_PAIR((sreg_t)res);
 } else {
-  res = sext_xlen(P_SH(RS2, 0) * P_SH(RS2, 1)) +
-        sext_xlen(P_SH(RS2, 2) * P_SH(RS2, 3)) + RS1;
-  WRITE_RD(res);
+  __int128 res = (__int128)(sreg_t)RS1
+               + (__int128)((sreg_t)P_SH(RS2, 0) * (sreg_t)P_SH(RS2, 1))
+               + (__int128)((sreg_t)P_SH(RS2, 2) * (sreg_t)P_SH(RS2, 3));
+  WRITE_RD((sreg_t)res);
 }
