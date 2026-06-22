@@ -201,7 +201,7 @@ static int xlen_to_uxl(int xlen)
 
 void state_t::reset(processor_t* const proc, reg_t max_isa)
 {
-  pc = DEFAULT_RSTVEC;
+  pc = proc->get_cfg().rstvec;
   XPR.reset();
   FPR.reset();
 
